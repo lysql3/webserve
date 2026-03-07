@@ -4,8 +4,9 @@ int main()
 {
     TcpServer server(8080);
 
-    server.start();
-    server.acceptClient();
+    server.init();
+	server.run();
+    // server.acceptClient();
 
     return 0;
 }

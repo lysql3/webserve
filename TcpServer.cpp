@@ -1,4 +1,5 @@
 #include "TcpServer.hpp"
+#include "ClientTable.hpp"
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -51,7 +52,7 @@ void TcpServer::startListening() {
 	}
 }
 
-void TcpServer::start() {
+void TcpServer::init() {
 	createSocket();
 	configureSocket();
 	configureAddress();
@@ -61,7 +62,52 @@ void TcpServer::start() {
 	std::cout << "Listening on port: " << _port << std::endl;
 }
 
+void TcpServer::run() {
+	fd_set rdset;
+	fd_set wrset;
+	char buff[4064] = {0};
+	int clientFd = -1;
+	ClientTable clientTable;
+
+	while (true) {
+		// build read_set = listening + clients
+		FD_ZERO(&wrset);
+		FD_ZERO(&rdset);
+		FD_SET(_server_fd, &rdset);
+
+		for (ClientMap::iterator it = clientTable.getAll().begin();
+			 it != clientTable.getAll().end(); ++it)
+			FD_SET(it->second->fd, &rdset);
+		// select()
+		int fdsNumber = _server_fd + clientTable.getAll().size() + 1;
+		select(fdsNumber, &rdset, &wrset, NULL, NULL);
+		// if listening ready → accept new client → add to table
+		if (FD_ISSET(_server_fd, &rdset)) {
+			clientFd = acceptClient();
+			if (clientFd > 0) clientTable.add(clientFd);
+		}
+		for (ClientMap::iterator it = clientTable.getAll().begin();
+			 it != clientTable.getAll().end(); ++it) {
+			if (FD_ISSET(it->second->fd, &rdset)) {
+				int n = read(it->second->fd, buff, sizeof(buff));
+				if (n == 0) {
+					clientTable.remove(it->second->fd);
+				} else {
+					std::cout << it->second->fd << " " << buff << "\n";
+					bzero(buff, sizeof(buff));
+				}
+			}
+		}
+		// for each client ready → read data → update buffers
+		//
+		// if write ready → write data → update buffers
+		// remove closed clients
+		// repeat
+	}
+}
+
 /* return new client fd or -1*/
+// TODO: move near private methods
 int TcpServer::acceptClient() {
 	struct sockaddr_in client_addr;
 	socklen_t len = sizeof(client_addr);

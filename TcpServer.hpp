@@ -15,13 +15,14 @@ class TcpServer {
 	void configureAddress();
 	void bindSocket();
 	void startListening();
+	int acceptClient();
 
    public:
 	TcpServer(int port);
 	~TcpServer();
 
-	void start();
-	int acceptClient();
+	void init();
+	void run();
 };
 
 #endif
