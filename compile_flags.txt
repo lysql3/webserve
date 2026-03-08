@@ -1,0 +1,5 @@
+-std=c++98
+-pedantic
+-Wall
+-Wextra
+-Werror

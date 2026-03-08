@@ -11,7 +11,6 @@ void ClientTable::remove(int fd) {
 
 	if (it != clients.end()) {
 		delete it->second;
-		clients.erase(it);
 	}
 }
 
@@ -25,9 +24,7 @@ Client *ClientTable::get(int fd) {
 ClientMap &ClientTable::getAll() { return clients; }
 
 void ClientTable::clear() {
-	for (ClientMap::iterator it = clients.begin();
-		 it != clients.end(); ++it)
+	for (ClientMap::iterator it = clients.begin(); it != clients.end(); ++it)
 		delete it->second;
-
 	clients.clear();
 }
