@@ -87,47 +87,72 @@ void TcpServer::init() {
 // 	// rdset = masterset;
 // 	// FD_SET(server_fd, &rdset);
 // }
+void build_fd_sets(int server_fd, fd_set &rdset, fd_set &wrset,
+				   ClientMap &map) {
+	FD_ZERO(&rdset);
+	FD_ZERO(&wrset);
+	for (ClientMap::iterator it = map.begin(); it != map.end(); ++it) {
+		FD_SET(it->first, &rdset);
+		FD_SET(it->first, &wrset);
+	}
+	FD_SET(server_fd, &rdset);
+}
+
+#include <fcntl.h>
+
+void make_non_blocking(int fd) {
+	int flags = fcntl(fd, F_GETFL, 0);
+	if (flags == -1) return;
+
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
 
 void TcpServer::run() {
 	fd_set rdset;
+	fd_set wrset;
 	fd_set masterset;
 	ClientTable table;
 	int max_fd = _server_fd;
 	int client_fd;
-	char buff[4064] = {0};
 
 	FD_ZERO(&masterset);
 	FD_ZERO(&rdset);
 
 	while (true) {
-		FD_ZERO(&rdset);
-		for (ClientMap::iterator it = table.getAll().begin();
-			 it != table.getAll().end(); ++it) {
-			FD_SET(it->first, &rdset);
-		}
-		FD_SET(_server_fd, &rdset);
+		ClientMap &map = table.getAll();
+		build_fd_sets(_server_fd, rdset, wrset, map);
 		select(max_fd + 1, &rdset, NULL, NULL, NULL);
+
 		if (FD_ISSET(_server_fd, &rdset)) {
 			client_fd = acceptClient();
-			if (client_fd >= 0) table.add(client_fd);
+
+			if (client_fd >= 0) {
+				make_non_blocking(client_fd);
+				table.add(client_fd);
+			}
 			if (client_fd > max_fd) max_fd = client_fd;
 		}
-		for (ClientMap::iterator it = table.getAll().begin();
-			 it != table.getAll().end();) {
-			bzero(buff, sizeof(buff));
+
+		for (ClientMap::iterator it = map.begin(); it != map.end();) {
 			if (FD_ISSET(it->first, &rdset)) {
-				int n = read(it->first, buff, sizeof(buff));
-				if (n <= 0) {
-					// FD_CLR(it->first, &masterset);
-					std::cout << it->first << ": " << "Disconnected\n";
+				if (it->second->onReadable() == false) {
+					std::cout << it->first << ": Disconnected\n";
 					ClientMap::iterator rem = it;
-					it++;
+					++it;
 					table.remove(rem->first);
 					continue;
-				} else
-					std::cout << it->first << ": " << buff;
+				}
 			}
-			it++;
+			if (FD_ISSET(it->first, &wrset)) {
+				if (it->second->onWritable() == false) {
+					std::cout << it->first << ": Disconnected\n";
+					ClientMap::iterator rem = it;
+					++it;
+					table.remove(rem->first);
+					continue;
+				}
+			}
+			++it;
 		}
 	}
 }

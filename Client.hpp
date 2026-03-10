@@ -12,5 +12,7 @@ class Client {
 
 	~Client();
 
+	bool onReadable();
+	bool onWritable();
 	bool hasDataToWrite() const;
 };
