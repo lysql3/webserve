@@ -13,9 +13,7 @@ Client::~Client() {
 bool Client::onReadable() {
 	char buff[4096];
 	int n = read(fd, buff, sizeof(buff));
-
 	if (n <= 0) return false;
-
 	read_buffer.append(buff, n);
 	write_buffer.append("Response\n");
 	// while (true) {

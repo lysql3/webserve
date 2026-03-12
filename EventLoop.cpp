@@ -25,6 +25,15 @@ void EventLoop::buildFdSets() {
 // 	}
 // 	if (clientFd > _max_fd) _max_fd = clientFd;
 // }
+
+// void EventLoop::handleNewConnections(Socket socket) {
+// 	int clientFd;
+// 	while ((clientFd = socket.acceptClient()) >= 0) {
+// 		_table.add(clientFd);
+// 		if (clientFd > _max_fd) _max_fd = clientFd;
+// 	}
+// }
+
 void EventLoop::handleNewConnections(Socket socket) {
 	int clientFd;
 	while ((clientFd = socket.acceptClient()) >= 0) {
