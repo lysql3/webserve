@@ -1,3 +1,4 @@
+#include <iostream>
 #include "TcpServer.hpp"
 
 int main() {
@@ -5,6 +6,5 @@ int main() {
 
 	server.init();
 	server.run();
-
 	return 0;
 }

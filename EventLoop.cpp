@@ -3,12 +3,6 @@
 #include <iostream>
 
 // NOTE: helper
-void make_non_blocking(int fd) {
-	int flags = fcntl(fd, F_GETFL, 0);
-	if (flags == -1) return;
-
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-}
 
 EventLoop::EventLoop(Socket &socket, ClientTable &table)
 	: _socket(socket), _table(table) {}
@@ -19,17 +13,24 @@ void EventLoop::buildFdSets() {
 	FD_ZERO(&_wrset);
 	for (ClientMap::iterator it = map.begin(); it != map.end(); ++it) {
 		FD_SET(it->first, &_rdset);
-		FD_SET(it->first, &_wrset);
+		if (it->second->hasDataToWrite()) FD_SET(it->first, &_wrset);
 	}
 	FD_SET(_socket.getFd(), &_rdset);
 }
 
-void EventLoop::handleNewConnection(int clientFd) {
-	if (clientFd >= 0) {
-		make_non_blocking(clientFd);
+// void EventLoop::handleNewConnection(int clientFd) {
+// 	if (clientFd >= 0) {
+// 		make_non_blocking(clientFd);
+// 		_table.add(clientFd);
+// 	}
+// 	if (clientFd > _max_fd) _max_fd = clientFd;
+// }
+void EventLoop::handleNewConnections(Socket socket) {
+	int clientFd;
+	while ((clientFd = socket.acceptClient()) >= 0) {
 		_table.add(clientFd);
+		if (clientFd > _max_fd) _max_fd = clientFd;
 	}
-	if (clientFd > _max_fd) _max_fd = clientFd;
 }
 
 bool EventLoop::handleClientActivity(int client_fd) {
@@ -57,11 +58,9 @@ void EventLoop::processClients() {
 }
 
 void EventLoop::run() {
-	std::cout << "MAX FD: " << _max_fd << std::endl;
 	buildFdSets();
 	select(_max_fd + 1, &_rdset, NULL, NULL, NULL);
-	if (FD_ISSET(_socket.getFd(), &_rdset))
-		handleNewConnection(_socket.acceptClient());
+	if (FD_ISSET(_socket.getFd(), &_rdset)) handleNewConnections(_socket);
 	processClients();
 }
 

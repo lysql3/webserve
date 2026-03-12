@@ -15,7 +15,14 @@ bool Client::onReadable() {
 	int n = read(fd, buff, sizeof(buff));
 
 	if (n <= 0) return false;
+
 	read_buffer.append(buff, n);
+	write_buffer.append("Response\n");
+	// while (true) {
+	// 	consumed = tryParse(read_buffer, &write_buffer);
+	// 	if (consuned == -1) break
+	// 	read_buffer.erase(0, consumed);
+	// }
 
 	std::cout << fd << ": ";
 	std::cout.write(buff, n);
@@ -23,12 +30,12 @@ bool Client::onReadable() {
 }
 
 bool Client::onWritable() {
-	int n = write(fd, "Hello\n", 6);
-
-	if (n <= 0) return false;
-
+	if (hasDataToWrite()) {
+		int n = write(fd, write_buffer.c_str(), write_buffer.length());
+		if (n <= 0) return false;
+		write_buffer.erase(0, n);
+	}
 	return true;
 }
-
 
 bool Client::hasDataToWrite() const { return !write_buffer.empty(); }

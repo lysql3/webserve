@@ -13,7 +13,8 @@ class EventLoop {
 	int _max_fd;
 
 	void buildFdSets();
-	void handleNewConnection(int clientFd);
+	void handleNewConnections(Socket socket);
+	// void handleNewConnection(int clientFd);
 	bool handleClientActivity(int clientFd);
 	void processClients();
 
