@@ -18,15 +18,6 @@ ClientMap::iterator ClientTable::remove(int fd) {
 	return it;
 }
 
-// void ClientTable::remove(int fd) {
-// 	ClientMap::iterator it = clients.find(fd);
-//
-// 	if (it != clients.end()) {
-// 		delete it->second;
-// 		clients.erase(it);
-// 	}
-// }
-
 Client *ClientTable::get(int fd) {
 	ClientMap::iterator it = clients.find(fd);
 

@@ -5,6 +5,8 @@ LFLAGS		= -lstdc++
 SRC         = Client.cpp \
 			  ClientTable.cpp \
 			  TcpServer.cpp \
+			  Socket.cpp \
+			  EventLoop.cpp \
 			  main.cpp \
 
 OBJ         = $(SRC:.cpp=.o)
