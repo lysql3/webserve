@@ -6,7 +6,6 @@
 #include <cstring>
 #include <iostream>
 
-void make_non_blocking(int fd);
 Socket::Socket(int port) : _server_fd(-1), _port(port) {}
 
 Socket::~Socket() {
@@ -15,7 +14,6 @@ Socket::~Socket() {
 
 void Socket::createSocket() {
 	_server_fd = socket(AF_INET, SOCK_STREAM, 0);
-	make_non_blocking(_server_fd);
 	if (_server_fd < 0) {
 		std::cerr << "socket() failed\n";
 		exit(EXIT_FAILURE);
@@ -61,7 +59,6 @@ int Socket::acceptClient() {
 
 	if (client_fd < 0) return -1;
 
-	make_non_blocking(client_fd);
 	// TODO: Logging system
 	std::cout << "Client connected: ";
 	std::cout << inet_ntoa(client_addr.sin_addr) << ":"

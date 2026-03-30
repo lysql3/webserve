@@ -18,6 +18,7 @@ void EventLoop::buildFdSets() {
 	FD_SET(_socket.getFd(), &_rdset);
 }
 
+void make_non_blocking(int fd);
 // void EventLoop::handleNewConnection(int clientFd) {
 // 	if (clientFd >= 0) {
 // 		make_non_blocking(clientFd);
@@ -37,6 +38,7 @@ void EventLoop::buildFdSets() {
 void EventLoop::handleNewConnections(Socket socket) {
 	int clientFd;
 	while ((clientFd = socket.acceptClient()) >= 0) {
+		make_non_blocking(clientFd);
 		_table.add(clientFd);
 		if (clientFd > _max_fd) _max_fd = clientFd;
 	}
@@ -50,7 +52,10 @@ bool EventLoop::handleClientActivity(int client_fd) {
 		}
 	}
 	if (FD_ISSET(client_fd, &_wrset)) {
-		if (!_table.get(client_fd)->onWritable()) { return false; }
+		if (!_table.get(client_fd)->onWritable()) {
+			std::cout << client_fd << ": Disconnected\n";
+			return false;
+		}
 	}
 
 	return true;
