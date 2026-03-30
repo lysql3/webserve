@@ -1,7 +1,10 @@
 #include "EventLoop.hpp"
 #include <fcntl.h>
+#include <cstdlib>
 #include <iostream>
 
+#include <sys/epoll.h>
+#define MAX_EVENTS 128
 // NOTE: helper
 
 void make_non_blocking(int fd);
@@ -20,11 +23,17 @@ void EventLoop::buildFdSets() {
 }
 
 void EventLoop::handleNewConnections(Socket &socket) {
+	struct epoll_event ev;
 	int clientFd;
 	while ((clientFd = socket.acceptClient()) >= 0) {
 		make_non_blocking(clientFd);
 		_table.add(clientFd);
-		if (clientFd > _max_fd) _max_fd = clientFd;
+		ev.events = EPOLLIN;
+		ev.data.fd = clientFd;
+		if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, clientFd, &ev) == -1) {
+			std::cerr << "epoll_ctl: conn_sock\n";
+			exit(EXIT_FAILURE);
+		}
 	}
 }
 
@@ -42,7 +51,7 @@ bool EventLoop::handleClientActivity(int client_fd) {
 	return true;
 }
 
-void EventLoop::processClients() {
+void EventLoop::processClients(int clientFd) {
 	ClientMap &map = _table.getAll();
 	for (ClientMap::iterator it = map.begin(); it != map.end();) {
 		if (handleClientActivity(it->first) == false)
@@ -52,11 +61,33 @@ void EventLoop::processClients() {
 	}
 }
 
-void EventLoop::run() {
-	buildFdSets();
-	select(_max_fd + 1, &_rdset, &_wrset, NULL, NULL);
-	if (FD_ISSET(_socket.getFd(), &_rdset)) handleNewConnections(_socket);
-	processClients();
+void EventLoop::loop() {
+	struct epoll_event ev;
+	struct epoll_event events[MAX_EVENTS];
+	int nfds;
+	_epollfd = epoll_create1(0);
+	if (_epollfd == -1) {
+		std::cerr << "epoll_create()\n";  // TODO: print_error_helper;
+		std::exit(EXIT_FAILURE);
+	}
+	ev.events = EPOLLIN;
+	ev.data.fd = _socket.getFd();
+	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, _socket.getFd(), &ev) == -1) {
+		std::cerr << "epoll_ctl: listen_sock\n";
+		exit(EXIT_FAILURE);
+	}
+	while (true) {
+		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, -1 /* time out */);
+		if (nfds == -1) {
+			std::cerr << "epoll_wait\n";
+			exit(EXIT_FAILURE);
+		}
+		for (int n = 0; n < nfds; ++n) {
+			if (events[n].data.fd == _socket.getFd()) {
+				handleNewConnections(_socket);
+			} else {
+				processClients(events[n]);
+			}
+		}
+	}
 }
-
-void EventLoop::setMaxfd(int fd) { _max_fd = fd; }

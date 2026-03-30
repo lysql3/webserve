@@ -8,19 +8,20 @@ class EventLoop {
    private:
 	Socket &_socket;
 	ClientTable &_table;
-	fd_set _rdset;
-	fd_set _wrset;
-	int _max_fd;
+	int _epollfd;
+	// fd_set _rdset;
+	// fd_set _wrset;
+	// int _max_fd; // TODO: remove implementaiton
 
 	void buildFdSets();
 	void handleNewConnections(Socket &socket);
 	bool handleClientActivity(int clientFd);
-	void processClients();
+	void processClients(int clientFd);
 
    public:
 	EventLoop(Socket &socket, ClientTable &table);
-	void setMaxfd(int fd);
-	void run();
+	// void setMaxfd(int fd);
+	void loop();
 };
 
 #endif

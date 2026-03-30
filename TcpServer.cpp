@@ -16,8 +16,6 @@ void TcpServer::init() {
 }
 
 void TcpServer::run() {
-	_eventLoop.setMaxfd(_socket.getFd());
-	while (true) {
-		_eventLoop.run();
-	}
+	std::cout << "Server running" << std::endl;
+	_eventLoop.loop();
 }
