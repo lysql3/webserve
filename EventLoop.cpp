@@ -46,8 +46,10 @@ void EventLoop::disconnectClient(int fd) {
 	Logger::info("client " + to_stringg(fd) + ": disconnected");
 }
 
-void EventLoop::setWriteable(int fd, struct epoll_event &ev) {
-	ev.events = ev.events | EPOLLOUT;
+void EventLoop::epollMod(int fd, u_int32_t events) {
+	struct epoll_event ev;
+	ev.events = events;
+	ev.data.fd = fd;
 	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == ERROR)
 		exitError("epoll_ctl: EPOLL_CTL_MOD");
 }
@@ -57,9 +59,10 @@ void EventLoop::processClients(struct epoll_event &ev) {
 	Client *client = _table.get(fd);
 	bool disconnect = false;
 
-	if (_table.get(fd)->hasDataToWrite()) { setWriteable(fd, ev); }
 	if (ev.events & EPOLLIN && !client->onReadable()) disconnect = true;
 	if (ev.events & EPOLLOUT && !client->onWritable()) disconnect = true;
+	if (client->hasDataToWrite()) { epollMod(fd, EPOLLIN | EPOLLOUT); }
+	if (!client->hasDataToWrite()) { epollMod(fd, EPOLLIN); }
 	if (disconnect) disconnectClient(fd);
 }
 

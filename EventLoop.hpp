@@ -22,7 +22,7 @@ class EventLoop {
 	// bool handleClientActivity(int clientFd);
 	void processClients(struct epoll_event &ev);
 	void disconnectClient(int fd);
-	void setWriteable(int fd, struct epoll_event &ev);
+	void epollMod(int fd, uint32_t events);
 	void epollAdd(int fd, uint32_t events);
 
    public:
