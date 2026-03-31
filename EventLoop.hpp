@@ -4,11 +4,15 @@
 #include "ClientTable.hpp"
 #include "Socket.hpp"
 
+#include <sys/epoll.h>
+#define MAX_EVENTS 128
+
 class EventLoop {
    private:
 	Socket &_socket;
 	ClientTable &_table;
 	int _epollfd;
+
 	// fd_set _rdset;
 	// fd_set _wrset;
 	// int _max_fd; // TODO: remove implementaiton
@@ -17,6 +21,7 @@ class EventLoop {
 	void handleNewConnections(Socket &socket);
 	// bool handleClientActivity(int clientFd);
 	void processClients(struct epoll_event &ev);
+	void disconnectClient(int fd);
 
    public:
 	EventLoop(Socket &socket, ClientTable &table);

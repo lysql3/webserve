@@ -6,22 +6,36 @@
 #include <cstring>
 #include <iostream>
 
-Socket::Socket(int port) : _server_fd(-1), _port(port) {}
-
-Socket::~Socket() {
-	if (_server_fd != -1) close(_server_fd);
-}
-
-void Socket::createSocket() {
+Socket::Socket(int port) : _port(port) {
 	_server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+	std::cerr << _server_fd;
 	if (_server_fd < 0) {
 		std::cerr << "socket() failed\n";
 		exit(EXIT_FAILURE);
 	}
 }
 
+Socket::~Socket() {
+	if (_server_fd != -1) close(_server_fd);
+}
+
+// void Socket::createSocket() {
+// 	_server_fd = socket(AF_INET, SOCK_STREAM, 0);
+//
+// 	std::cerr << _server_fd;
+// 	if (_server_fd < 0) {
+// 		std::cerr << "socket() failed\n";
+// 		exit(EXIT_FAILURE);
+// 	}
+// }
+
+void make_non_blocking(int fd);
 void Socket::configureSocket() {
+
 	int opt = 1;
+
+	make_non_blocking(_server_fd);
 	if (setsockopt(_server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
 				   sizeof(opt))) {
 		std::cout << "setsocket(): " << std::strerror(errno) << std::endl;

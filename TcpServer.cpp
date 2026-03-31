@@ -5,9 +5,9 @@ TcpServer::TcpServer(int port) : _socket(port), _eventLoop(_socket, _table) {}
 
 void make_non_blocking(int fd);
 void TcpServer::init() {
-	_socket.createSocket();
-	make_non_blocking(_socket.getFd());
+	// _socket.createSocket();
 
+	make_non_blocking(_socket.getFd());
 	_socket.configureSocket();
 	_socket.configureAddress();
 	_socket.bindSocket();

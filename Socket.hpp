@@ -12,7 +12,7 @@ class Socket {
 	Socket(int port);
 	~Socket();
 
-	void createSocket();
+	// void createSocket();
 	void configureSocket();
 	void configureAddress();
 	void bindSocket();

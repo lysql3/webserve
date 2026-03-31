@@ -26,6 +26,7 @@ run: re
 	./webserve
 
 runv: re
+	make clean
 	valgrind ./webserve
 
 $(NAME): $(OBJ)
