@@ -3,55 +3,53 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
-
+#include <string>
+#include "Logger.hpp"
+#include "helper.hpp"
 // NOTE: helper
 
+template <typename T>
+std::string to_stringg(T val);
 void make_non_blocking(int fd);
+void exitError(std::string msg);
+#define ERROR -1
+
 void EventLoop::epollAdd(int fd, uint32_t events) {
 	struct epoll_event ev;
 	ev.events = events;
 	ev.data.fd = fd;
-	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev) == -1) {
-		std::cerr << "epoll_ctl ADD: " << std::strerror(errno) << "\n";
-		exit(EXIT_FAILURE);
-	}
+	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev) == ERROR)
+		exitError("epoll_ctl: EPOLL_CTL_ADD");
 }
 
 EventLoop::EventLoop(Socket &socket, ClientTable &table)
 	: _socket(socket), _table(table) {
 	_epollfd = epoll_create1(0);
-	if (_epollfd == -1) {
-		std::cerr << "epoll_create()\n";
-		std::exit(EXIT_FAILURE);
-	}
+	if (_epollfd == ERROR) exitError("epoll_create");
 	epollAdd(_socket.getFd(), EPOLLIN);
 }
 
 void EventLoop::handleNewConnections(Socket &socket) {
-	int clientFd;
-	while ((clientFd = socket.acceptClient()) >= 0) {
-		make_non_blocking(clientFd);
-		_table.add(clientFd);
-		epollAdd(clientFd, EPOLLIN);
+	int fd;
+	while ((fd = socket.acceptClient()) >= 0) {
+		make_non_blocking(fd);
+		_table.add(fd);
+		epollAdd(fd, EPOLLIN);
+		Logger::info("client " + to_stringg(fd) + ": connected");
 	}
 }
 
 void EventLoop::disconnectClient(int fd) {
-	std::cout << fd << ": Disconnected\n";
-	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) == -1) {
-		std::cerr << "epoll_ctl: conn_sock\n";
-		exit(EXIT_FAILURE);
-	}
+	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) == ERROR)
+		exitError("epoll_ctl: EPOLL_CTL_DEL");
 	_table.remove(fd);
+	Logger::info("client " + to_stringg(fd) + ": disconnected");
 }
 
 void EventLoop::setWriteable(int fd, struct epoll_event &ev) {
 	ev.events = ev.events | EPOLLOUT;
-	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-		std::cerr << "epoll_ctl\n";
-		exit(EXIT_FAILURE);
-	}
+	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == ERROR)
+		exitError("epoll_ctl: EPOLL_CTL_MOD");
 }
 
 void EventLoop::processClients(struct epoll_event &ev) {
@@ -70,17 +68,13 @@ void EventLoop::loop() {
 	struct epoll_event events[MAX_EVENTS];
 
 	while (true) {
-		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, -1 /* time out */);
-		if (nfds == -1) {
-			std::cerr << "epoll_wait\n";
-			exit(EXIT_FAILURE);
-		}
+		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, ERROR /* time out */);
+		if (nfds == ERROR) exitError("epoll_wait");
 		for (int n = 0; n < nfds; ++n) {
-			if (events[n].data.fd == _socket.getFd()) {
+			if (events[n].data.fd == _socket.getFd())
 				handleNewConnections(_socket);
-			} else {
+			else
 				processClients(events[n]);
-			}
 		}
 	}
 }

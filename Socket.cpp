@@ -5,15 +5,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include "helper.hpp"
 
 Socket::Socket(int port) : _port(port) {
 	_server_fd = socket(AF_INET, SOCK_STREAM, 0);
-
-	std::cerr << _server_fd;
-	if (_server_fd < 0) {
-		std::cerr << "socket() failed\n";
-		exit(EXIT_FAILURE);
-	}
+	if (_server_fd < 0) exitError("socket");
 }
 
 Socket::~Socket() {
@@ -32,15 +28,12 @@ Socket::~Socket() {
 
 void make_non_blocking(int fd);
 void Socket::configureSocket() {
-
 	int opt = 1;
 
 	make_non_blocking(_server_fd);
 	if (setsockopt(_server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
-				   sizeof(opt))) {
-		std::cout << "setsocket(): " << std::strerror(errno) << std::endl;
-		exit(EXIT_FAILURE);
-	}
+				   sizeof(opt)))
+		exitError("setsocket");
 }
 
 void Socket::configureAddress() {
@@ -51,18 +44,13 @@ void Socket::configureAddress() {
 }
 
 void Socket::bindSocket() {
-	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0) {
-		std::cout << "bind(): " << std::strerror(errno) << std::endl;
-		exit(EXIT_FAILURE);
-	}
+	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
+		exitError("bind");
 }
 
 #define QUEUE_SIZE 10
 void Socket::startListening() {
-	if (listen(_server_fd, QUEUE_SIZE) < 0) {
-		std::cout << "listen(): " << std::strerror(errno) << std::endl;
-		exit(EXIT_FAILURE);
-	}
+	if (listen(_server_fd, QUEUE_SIZE) < 0) exitError("listen");
 	std::cout << "Listening on port: " << _port << std::endl;
 }
 
@@ -73,14 +61,8 @@ int Socket::acceptClient() {
 	int client_fd = accept(_server_fd, (struct sockaddr *)&client_addr, &len);
 
 	if (client_fd < 0) return -1;
-
-	// TODO: Logging system
-	std::cout << "Client connected: ";
-	std::cout << inet_ntoa(client_addr.sin_addr) << ":"
-			  << ntohs(client_addr.sin_port);
-	std::cout << ' ' << client_fd << std::endl;
-
 	return client_fd;
 }
 
 int Socket::getFd() { return _server_fd; }
+int Socket::getPort() { return _port; }

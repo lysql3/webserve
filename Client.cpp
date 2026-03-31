@@ -7,7 +7,6 @@ Client::Client(int socket_fd) : fd(socket_fd) {}
 
 Client::~Client() {
 	if (fd >= 0) close(fd);
-	std::cout << fd << " closed\n";
 }
 
 bool Client::onReadable() {

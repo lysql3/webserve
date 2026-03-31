@@ -7,6 +7,7 @@ SRC         = Client.cpp \
 			  TcpServer.cpp \
 			  Socket.cpp \
 			  EventLoop.cpp \
+			  Logger.cpp \
 			  helper.cpp \
 			  main.cpp \
 

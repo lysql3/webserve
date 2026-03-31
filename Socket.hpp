@@ -19,5 +19,6 @@ class Socket {
 	void startListening();
 	int acceptClient();
 	int getFd();
+	int getPort();
 };
 #endif

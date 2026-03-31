@@ -8,6 +8,7 @@ typedef std::map<int, Client *> ClientMap;
 
 class ClientTable {
    private:
+
 	ClientMap clients;
 
    public:
