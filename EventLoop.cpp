@@ -8,34 +8,32 @@
 // NOTE: helper
 
 void make_non_blocking(int fd);
-EventLoop::EventLoop(Socket &socket, ClientTable &table)
-	: _socket(socket), _table(table) {
+void EventLoop::epollAdd(int fd, uint32_t events) {
 	struct epoll_event ev;
-	_epollfd = epoll_create1(0);
-	if (_epollfd == -1) {
-		std::cerr << "epoll_create()\n";  // TODO: print_error_helper;
-		std::exit(EXIT_FAILURE);
-	}
-	ev.events = EPOLLIN;
-	ev.data.fd = _socket.getFd();
-	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, _socket.getFd(), &ev) == -1) {
-		std::cerr << "epoll_ctl: listen_sock " << std::strerror(errno) << "\n";
+	ev.events = events;
+	ev.data.fd = fd;
+	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev) == -1) {
+		std::cerr << "epoll_ctl ADD: " << std::strerror(errno) << "\n";
 		exit(EXIT_FAILURE);
 	}
 }
 
+EventLoop::EventLoop(Socket &socket, ClientTable &table)
+	: _socket(socket), _table(table) {
+	_epollfd = epoll_create1(0);
+	if (_epollfd == -1) {
+		std::cerr << "epoll_create()\n";
+		std::exit(EXIT_FAILURE);
+	}
+	epollAdd(_socket.getFd(), EPOLLIN);
+}
+
 void EventLoop::handleNewConnections(Socket &socket) {
-	struct epoll_event ev;
 	int clientFd;
 	while ((clientFd = socket.acceptClient()) >= 0) {
 		make_non_blocking(clientFd);
 		_table.add(clientFd);
-		ev.events = EPOLLIN;
-		ev.data.fd = clientFd;
-		if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, clientFd, &ev) == -1) {
-			std::cerr << "epoll_ctl: conn_sock\n";
-			exit(EXIT_FAILURE);
-		}
+		epollAdd(clientFd, EPOLLIN);
 	}
 }
 
@@ -48,17 +46,23 @@ void EventLoop::disconnectClient(int fd) {
 	_table.remove(fd);
 }
 
-void EventLoop::processClients(struct epoll_event &ev) {
-	if (_table.get(ev.data.fd)->hasDataToWrite()) {
-		ev.events = ev.events | EPOLLOUT;
-		if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, ev.data.fd, &ev) == -1) {
-			std::cerr << "epoll_ctl\n";
-			exit(EXIT_FAILURE);
-		}
+void EventLoop::setWriteable(int fd, struct epoll_event &ev) {
+	ev.events = ev.events | EPOLLOUT;
+	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == -1) {
+		std::cerr << "epoll_ctl\n";
+		exit(EXIT_FAILURE);
 	}
-	if ((ev.events & EPOLLIN && !_table.get(ev.data.fd)->onReadable()) ||
-		(ev.events & EPOLLOUT && !_table.get(ev.data.fd)->onWritable()))
-		disconnectClient(ev.data.fd);
+}
+
+void EventLoop::processClients(struct epoll_event &ev) {
+	int fd = ev.data.fd;
+	Client *client = _table.get(fd);
+	bool disconnect = false;
+
+	if (_table.get(fd)->hasDataToWrite()) { setWriteable(fd, ev); }
+	if (ev.events & EPOLLIN && !client->onReadable()) disconnect = true;
+	if (ev.events & EPOLLOUT && !client->onWritable()) disconnect = true;
+	if (disconnect) disconnectClient(fd);
 }
 
 void EventLoop::loop() {
