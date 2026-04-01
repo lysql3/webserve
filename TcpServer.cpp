@@ -1,7 +1,4 @@
 #include "TcpServer.hpp"
-#include <iostream>
-#include "Logger.hpp"
-#include "helper.hpp"
 
 TcpServer::TcpServer(int port) : _socket(port), _eventLoop(_socket, _table) {}
 

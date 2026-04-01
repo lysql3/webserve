@@ -1,10 +1,4 @@
 #include "Client.hpp"
-#include <unistd.h>
-#include <cstring>
-#include <iostream>
-#include "Logger.hpp"
-#include "helper.hpp"
-#define ERROR -1
 
 Client::Client(int socket_fd) : fd(socket_fd) {}
 

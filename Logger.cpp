@@ -1,6 +1,4 @@
 #include "Logger.hpp"
-#include <ctime>
-#include <iostream>
 
 std::string Logger::timestamp() {
 	char buf[32];

@@ -6,24 +6,17 @@
 #include "Logger.hpp"
 #include "helper.hpp"
 
-enum ClientStatus {
-	OK,			 // keep going, nothing special
-	WANT_WRITE,	 // response ready, register EPOLLOUT
-	DONE_WRITE,	 // buffer flushed, remove EPOLLOUT
-	DISCONNECT	 // close the connection
-};
+enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT };
 
 class Client {
    private:
 	int fd;
-
 	std::vector<u_int8_t> _rbuf;
 	std::vector<u_int8_t> _wrbuf;
+	bool hasDataToWrite() const;  // maybe private
 
    public:
-	bool hasDataToWrite() const;  // maybe private
 	Client(int socket_fd);
-
 	~Client();
 
 	ClientStatus onReadable();
