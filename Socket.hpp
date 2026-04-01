@@ -10,6 +10,8 @@ class Socket {
 
    public:
 	Socket(int port);
+	Socket(const Socket &);
+	Socket &operator=(const Socket &);
 	~Socket();
 
 	// void createSocket();
