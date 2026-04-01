@@ -1,5 +1,7 @@
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
+#include <ctime>
+#include <iostream>
 
 #include <string>
 

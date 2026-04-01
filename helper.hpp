@@ -2,7 +2,7 @@
 #define HELPER_HPP
 #include <string>
 #include <sstream>
-
+#define ERROR -1
 template <typename T>
 std::string to_stringg(T val) {
 	std::ostringstream oss;

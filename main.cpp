@@ -1,4 +1,3 @@
-#include <iostream>
 #include "TcpServer.hpp"
 
 int main() {

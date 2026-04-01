@@ -1,18 +1,13 @@
 #include "EventLoop.hpp"
-#include <fcntl.h>
-#include <cerrno>
-#include <cstdlib>
-#include <cstring>
-#include <string>
-#include "Logger.hpp"
-#include "helper.hpp"
-// NOTE: helper
 
-template <typename T>
-std::string to_stringg(T val);
-void make_non_blocking(int fd);
-void exitError(std::string msg);
-#define ERROR -1
+EventLoop::EventLoop(Socket &socket, ClientTable &table)
+	: _socket(socket), _table(table) {
+	_epollfd = epoll_create1(0);
+	if (_epollfd == ERROR) exitError("epoll_create");
+	epollAdd(_socket.getFd(), EPOLLIN);
+}
+
+EventLoop::~EventLoop() { close(_epollfd); }
 
 void EventLoop::epollAdd(int fd, uint32_t events) {
 	struct epoll_event ev;
@@ -22,21 +17,12 @@ void EventLoop::epollAdd(int fd, uint32_t events) {
 		exitError("epoll_ctl: EPOLL_CTL_ADD");
 }
 
-EventLoop::EventLoop(Socket &socket, ClientTable &table)
-	: _socket(socket), _table(table) {
-	_epollfd = epoll_create1(0);
-	if (_epollfd == ERROR) exitError("epoll_create");
-	epollAdd(_socket.getFd(), EPOLLIN);
-}
-
-void EventLoop::handleNewConnections(Socket &socket) {
-	int fd;
-	while ((fd = socket.acceptClient()) >= 0) {
-		make_non_blocking(fd);
-		_table.add(fd);
-		epollAdd(fd, EPOLLIN);
-		Logger::info("client " + to_stringg(fd) + ": connected");
-	}
+void EventLoop::epollMod(int fd, u_int32_t events) {
+	struct epoll_event ev;
+	ev.events = events;
+	ev.data.fd = fd;
+	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == ERROR)
+		exitError("epoll_ctl: EPOLL_CTL_MOD");
 }
 
 void EventLoop::disconnectClient(int fd) {
@@ -44,14 +30,6 @@ void EventLoop::disconnectClient(int fd) {
 		exitError("epoll_ctl: EPOLL_CTL_DEL");
 	_table.remove(fd);
 	Logger::info("client " + to_stringg(fd) + ": disconnected");
-}
-
-void EventLoop::epollMod(int fd, u_int32_t events) {
-	struct epoll_event ev;
-	ev.events = events;
-	ev.data.fd = fd;
-	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == ERROR)
-		exitError("epoll_ctl: EPOLL_CTL_MOD");
 }
 
 bool EventLoop::handleStatus(int fd, ClientStatus status) {
@@ -72,6 +50,16 @@ void EventLoop::processClients(struct epoll_event &ev) {
 	if (ev.events & EPOLLOUT && !handleStatus(fd, client->onWritable())) {
 		disconnectClient(fd);
 		return;
+	}
+}
+
+void EventLoop::handleNewConnections(Socket &socket) {
+	int fd;
+	while ((fd = socket.acceptClient()) >= 0) {
+		make_non_blocking(fd);
+		_table.add(fd);
+		epollAdd(fd, EPOLLIN);
+		Logger::info("client " + to_stringg(fd) + ": connected");
 	}
 }
 

@@ -3,7 +3,11 @@
 
 #include "ClientTable.hpp"
 #include "EventLoop.hpp"
+
+#include <iostream>
+#include "Logger.hpp"
 #include "Socket.hpp"
+#include "helper.hpp"
 
 class TcpServer {
    private:

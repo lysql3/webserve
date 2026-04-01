@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <cstring>
 #include <iostream>
-#include <string>
 #include "Logger.hpp"
 #include "helper.hpp"
 #define ERROR -1
@@ -13,8 +12,6 @@ Client::~Client() {
 	if (fd >= 0) close(fd);
 }
 
-// NOTE: EINTR is not handled here due to project constraints (reading errno).
-// A signal arriving during recv() will cause a spurious disconnect.
 ClientStatus Client::onReadable() {
 	u_int8_t buff[4096];
 	char response[200];

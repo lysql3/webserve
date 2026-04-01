@@ -1,6 +1,13 @@
 #ifndef SOCKET_HPP
 #define SOCKET_HPP
 
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include "helper.hpp"
 #include <netinet/in.h>
 class Socket {
    private:
@@ -14,7 +21,6 @@ class Socket {
 	Socket &operator=(const Socket &);
 	~Socket();
 
-	// void createSocket();
 	void configureSocket();
 	void configureAddress();
 	void bindSocket();

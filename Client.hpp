@@ -1,6 +1,10 @@
 #include <sys/types.h>
 #include <unistd.h>
+#include <cstring>
+#include <iostream>
 #include <vector>
+#include "Logger.hpp"
+#include "helper.hpp"
 
 enum ClientStatus {
 	OK,			 // keep going, nothing special
