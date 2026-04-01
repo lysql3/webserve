@@ -1,7 +1,11 @@
 #include "Client.hpp"
 #include <unistd.h>
+#include <cstring>
 #include <iostream>
 #include <string>
+#include "Logger.hpp"
+#include "helper.hpp"
+#define ERROR -1
 
 Client::Client(int socket_fd) : fd(socket_fd) {}
 
@@ -9,32 +13,41 @@ Client::~Client() {
 	if (fd >= 0) close(fd);
 }
 
-bool Client::onReadable() {
-	char buff[4096];
+// NOTE: EINTR is not handled here due to project constraints (reading errno).
+// A signal arriving during recv() will cause a spurious disconnect.
+ClientStatus Client::onReadable() {
+	u_int8_t buff[4096];
+	char response[200];
+	strncpy(response, "Response\n", 10);
 	int n = read(fd, buff, sizeof(buff));
-	if (n == 0) return false;
-	if (n == -1) return true;
-	read_buffer.append(buff, n);
-	write_buffer.append("Response\n");
-	//
+
+	if (n == 0 || n == ERROR) return DISCONNECT;
+
+	_rbuf.insert(_rbuf.end(), buff, buff + n);
+	_wrbuf.insert(_wrbuf.end(), response, response + 10);
+
 	// while (true) {
 	// 	consumed = tryParse(read_buffer, &write_buffer);
 	// 	if (consuned == -1) break
 	// 	read_buffer.erase(0, consumed);
+	// 	return WANT_WRITE;
 	// }
 
-	std::cout << fd << ": ";
-	std::cout.write(buff, n);
-	return true;
+	Logger::info("Client " + to_stringg(fd) + ": ");
+	std::cout.write((char *)_rbuf.data(), _rbuf.size());
+	return WANT_WRITE;
+	// return OK;
 }
 
-bool Client::onWritable() {
+ClientStatus Client::onWritable() {
 	if (hasDataToWrite()) {
-		int n = write(fd, write_buffer.c_str(), write_buffer.length());
-		if (n <= 0) return false;
-		write_buffer.erase(0, n);
+		int n = write(fd, _wrbuf.data(), _wrbuf.size());
+		if (n <= 0) return DISCONNECT;
+		_wrbuf.erase(_wrbuf.begin(), _wrbuf.begin() + n);
+		if (hasDataToWrite()) return OK;
+		return DONE_WRITE;
 	}
-	return true;
+	return OK;
 }
 
-bool Client::hasDataToWrite() const { return !write_buffer.empty(); }
+bool Client::hasDataToWrite() const { return !_wrbuf.empty(); }

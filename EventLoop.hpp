@@ -24,6 +24,7 @@ class EventLoop {
 	void disconnectClient(int fd);
 	void epollMod(int fd, uint32_t events);
 	void epollAdd(int fd, uint32_t events);
+	bool handleStatus(int fd, ClientStatus status);
 
    public:
 	EventLoop(Socket &socket, ClientTable &table);

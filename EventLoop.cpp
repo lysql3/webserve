@@ -54,16 +54,25 @@ void EventLoop::epollMod(int fd, u_int32_t events) {
 		exitError("epoll_ctl: EPOLL_CTL_MOD");
 }
 
+bool EventLoop::handleStatus(int fd, ClientStatus status) {
+	if (status == DISCONNECT) return false;
+	else if (status == WANT_WRITE) epollMod(fd, EPOLLIN | EPOLLOUT);
+	else if (status == DONE_WRITE) epollMod(fd, EPOLLIN);
+	return true;
+}
+
 void EventLoop::processClients(struct epoll_event &ev) {
 	int fd = ev.data.fd;
 	Client *client = _table.get(fd);
-	bool disconnect = false;
 
-	if (ev.events & EPOLLIN && !client->onReadable()) disconnect = true;
-	if (ev.events & EPOLLOUT && !client->onWritable()) disconnect = true;
-	if (client->hasDataToWrite()) { epollMod(fd, EPOLLIN | EPOLLOUT); }
-	if (!client->hasDataToWrite()) { epollMod(fd, EPOLLIN); }
-	if (disconnect) disconnectClient(fd);
+	if (ev.events & EPOLLIN && !handleStatus(fd, client->onReadable())) {
+		disconnectClient(fd);
+		return;
+	}
+	if (ev.events & EPOLLOUT && !handleStatus(fd, client->onWritable())) {
+		disconnectClient(fd);
+		return;
+	}
 }
 
 void EventLoop::loop() {
@@ -76,8 +85,7 @@ void EventLoop::loop() {
 		for (int n = 0; n < nfds; ++n) {
 			if (events[n].data.fd == _socket.getFd())
 				handleNewConnections(_socket);
-			else
-				processClients(events[n]);
+			else processClients(events[n]);
 		}
 	}
 }

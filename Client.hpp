@@ -1,25 +1,27 @@
 #include <sys/types.h>
 #include <unistd.h>
-#include <string>
+#include <vector>
+
 enum ClientStatus {
-    OK,           // keep going, nothing special
-    WANT_WRITE,   // response ready, register EPOLLOUT
-    DONE_WRITE,   // buffer flushed, remove EPOLLOUT
-    DISCONNECT    // close the connection
-}; // START HERE
+	OK,			 // keep going, nothing special
+	WANT_WRITE,	 // response ready, register EPOLLOUT
+	DONE_WRITE,	 // buffer flushed, remove EPOLLOUT
+	DISCONNECT	 // close the connection
+};
 
 class Client {
-   public:
+   private:
 	int fd;
 
-	std::string read_buffer;
-	std::string write_buffer;
+	std::vector<u_int8_t> _rbuf;
+	std::vector<u_int8_t> _wrbuf;
 
+   public:
+	bool hasDataToWrite() const;  // maybe private
 	Client(int socket_fd);
 
 	~Client();
 
-	bool onReadable();
-	bool onWritable();
-	bool hasDataToWrite() const;
+	ClientStatus onReadable();
+	ClientStatus onWritable();
 };
