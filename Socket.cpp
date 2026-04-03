@@ -30,10 +30,8 @@ void Socket::bindSocket() {
 		exitError("bind");
 }
 
-#define QUEUE_SIZE 10
 void Socket::startListening() {
 	if (listen(_server_fd, QUEUE_SIZE) < 0) exitError("listen");
-	std::cout << "Listening on port: " << _port << std::endl;
 }
 
 int Socket::acceptClient() {

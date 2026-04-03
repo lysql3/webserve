@@ -13,10 +13,14 @@ class Client {
 	int fd;
 	std::vector<u_int8_t> _rbuf;
 	std::vector<u_int8_t> _wrbuf;
-	bool hasDataToWrite() const;  // maybe private
+
+	time_t _connected_at;
+	time_t _last_response_at;
+	bool _request_complete;
+	bool hasDataToWrite() const;
 
    public:
-	Client(int socket_fd);
+	Client(int fd);
 	~Client();
 
 	ClientStatus onReadable();

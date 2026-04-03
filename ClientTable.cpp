@@ -27,6 +27,10 @@ Client *ClientTable::get(int fd) {
 
 ClientMap &ClientTable::getAll() { return clients; }
 
+size_t ClientTable::size() {
+	return clients.size();
+}
+
 void ClientTable::clear() {
 	for (ClientMap::iterator it = clients.begin(); it != clients.end(); ++it)
 		delete it->second;

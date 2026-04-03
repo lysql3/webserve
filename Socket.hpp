@@ -2,13 +2,16 @@
 #define SOCKET_HPP
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <unistd.h>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include "helper.hpp"
-#include <netinet/in.h>
+
+#define QUEUE_SIZE 10
+
 class Socket {
    private:
 	int _server_fd;

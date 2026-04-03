@@ -14,6 +14,7 @@
 #include "helper.hpp"
 
 #define MAX_EVENTS 128
+#define MAX_CLIENTS 1000
 
 class EventLoop {
    private:
